@@ -39,10 +39,9 @@ Das Frontend kommuniziert mit den Backend-Services über das Nginx Gateway unter
 6.  ToDo Erstellen, Löschen, Status-Toggle implementiert.
 7.  Pomodoro-Ansicht und -Logik (inkl. Countdown) hinzugefügt.
 8.  API-Aufrufe auf Nginx-Gateway-Pfade umgestellt (`/api/...`).
-
-# Frontend Angular Service
-
-Dieses Verzeichnis enthält die Angular-Frontend-Anwendung für die SRE ToDo Demo.
+9.  Angular Routing implementiert (die Logik für die einzelnen Ansichten wurde in dedizierte Komponenten ausgelagert).
+10. OpenTelemetry-Instrumentierung hinzugefügt, um Traces für Seitenaufrufe und HTTP-Anfragen zu generieren.
+11. OpenShift-Kompatibilität durch Anpassungen im Dockerfile und Nginx-Konfiguration sichergestellt.
 
 ## Funktionalität
 
@@ -52,7 +51,7 @@ Dieses Verzeichnis enthält die Angular-Frontend-Anwendung für die SRE ToDo Dem
 -   Ermöglicht das Umschalten des Erledigt-Status von ToDos.
 -   Ermöglicht das Löschen von ToDos.
 -   Implementiert eine Pomodoro-Timer-Ansicht mit Start/Stop-Funktionalität und Countdown-Anzeige, gesteuert über `service-python-pomodoro`.
--   **Neu:** Ermöglicht das Bearbeiten des Textes bestehender ToDos.
+-   Ermöglicht das Bearbeiten des Textes bestehender ToDos.
 
 ## Implementierungsdetails
 
@@ -63,13 +62,13 @@ Dieses Verzeichnis enthält die Angular-Frontend-Anwendung für die SRE ToDo Dem
 -   **Modelle:** Verwendet Interfaces (`Todo`, `PomodoroState`, `Statistics`) definiert in `models.ts`.
 -   **OpenTelemetry:** Ist integriert, um Traces für Seitenaufrufe, Klicks und HTTP-Anfragen (Fetch/XHR) zu generieren. Die Konfiguration erfolgt in `src/app/tracing.ts` und wird in `src/main.ts` initialisiert.
 
-## Technische Details
+## OpenShift-Kompatibilität
 
--   Angular CLI Version (siehe `package.json`).
--   Verwendet Standalone Components.
--   Nutzt den `HttpClient` (ausgelagert in `ApiService`) für die Kommunikation mit den Backend-Services über das Nginx-Gateway (`/api/...`).
--   Grundlegendes Styling für eine einfache Benutzeroberfläche.
--   **Neu:** Die Logik für API-Aufrufe wurde in den `ApiService` (`src/app/api.service.ts`) refaktoriert.
+Für die Bereitstellung in OpenShift wurden folgende Anpassungen vorgenommen:
+
+-   **Port 8080:** Die Nginx-Konfiguration im Container wurde angepasst, um auf Port 8080 statt 80 zu lauschen, da OpenShift für non-root Container in der Regel Ports >1024 erfordert.
+-   **Non-Root-Ausführung:** Das Dockerfile und die Nginx-Konfiguration wurden angepasst, um die Ausführung als non-root Benutzer zu ermöglichen.
+-   **ConfigMap-Problem:** In der OpenShift-Deployment wurde eine statische HTML-Seite über eine ConfigMap eingebunden, die die Angular-Anwendung überdeckt. Diese muss entfernt werden, damit die korrekte Angular-Anwendung angezeigt wird.
 
 ## Starten (als Teil des Docker Compose Stacks)
 
@@ -77,7 +76,7 @@ Das Frontend wird als Teil des gesamten Stacks mit `docker-compose up` gebaut un
 
 ## Starten (in Kubernetes via Helm)
 
-Das Frontend wird zusammen mit den anderen Services über Helm bereitgestellt (siehe `kubernetes/README.md`). Der Zugriff erfolgt ebenfalls über das Nginx Gateway, dessen Adresse vom Ingress-Controller abhängt (z.B. `http://localhost/` bei lokalem K8s).
+Das Frontend wird zusammen mit den anderen Services über Helm bereitgestellt (siehe `kubernetes/README.md`). Der Zugriff erfolgt ebenfalls über das Nginx Gateway, dessen Adresse vom Ingress-Controller abhängt (z.B. `http://localhost/` bei lokalem K8s oder die Route in OpenShift).
 
 ## Entwicklung
 
@@ -91,31 +90,10 @@ Das Frontend wird zusammen mit den anderen Services über Helm bereitgestellt (s
 -   [x] OpenTelemetry-Instrumentierung hinzufügen.
 -   [x] Korrekte Implementierung von Angular Routing anstelle von `*ngIf` für die Ansichten.
 -   [x] Auslagern der Interfaces in eigene Dateien (`models.ts`).
+-   [ ] Verbesserung der Error-Handling-Logik (z.B. Anzeige von Fehlermeldungen bei fehlgeschlagenen API-Aufrufen).
+-   [ ] Bessere visuelle Darstellung des aktuellen Pomodoro-Timer-Status.
 
-# FrontendAngular
+## Bekannte Probleme
 
-This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 18.2.17.
-
-## Development server
-
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The application will automatically reload if you change any of the source files.
-
-## Code scaffolding
-
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
-
-## Build
-
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
-
-## Running unit tests
-
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
-
-## Running end-to-end tests
-
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
-
-## Further help
-
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+- In OpenShift zeigt das Frontend manchmal eine statische HTML-Seite anstelle der Angular-Anwendung, wenn die ConfigMap-Montage nicht entfernt wurde.
+- Nach einem Neustart des Containers kann es kurzfristig zu CORS-Problemen kommen, bis das Nginx Gateway vollständig gestartet ist.
