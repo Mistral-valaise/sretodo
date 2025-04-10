@@ -8,6 +8,49 @@ Ziel ist es, eine Anwendung mit mehreren Microservices (Java, .NET, Python, Go, 
 
 ## Architektur
 
+```mermaid
+graph TB
+    User(["Benutzer"]) --> NGINX["Nginx Gateway\n(Port 80)"]
+    
+    subgraph "Frontend"
+        NGINX --> Angular["Frontend Angular\n(TypeScript)"]
+    end
+    
+    subgraph "Backend Services"
+        NGINX --> TodoSvc["Java Todo Service\n(Spring Boot)"]
+        NGINX --> StatSvc["DotNet Statistik Service\n(C# .NET)"]
+        NGINX --> PomoSvc["Python Pomodoro Service\n(FastAPI/Uvicorn)"]
+        
+        StatSvc --> TodoSvc
+        
+        Health["Go Healthcheck Service\n(Go)"] --> TodoSvc
+        Health --> StatSvc
+        Health --> PomoSvc
+    end
+    
+    subgraph "Persistenz"
+        TodoSvc --> DB[(PostgreSQL)]
+    end
+    
+    subgraph "Observability Stack"
+        TodoSvc --> OTEL["OpenTelemetry\nCollector"]
+        StatSvc --> OTEL
+        PomoSvc --> OTEL
+        Health --> OTEL
+        Angular --> OTEL
+        
+        OTEL --> Prometheus["Prometheus\n(Metriken)"]
+        OTEL --> Tempo["Tempo\n(Traces)"]
+        OTEL --> Loki["Loki\n(Logs)"]
+        
+        Grafana["Grafana\n(Visualisierung)"] --> Prometheus
+        Grafana --> Tempo
+        Grafana --> Loki
+        
+        Grafana --> User
+    end
+```
+
 - **Microservices:**
   - `frontend-angular`: Angular Web UI
   - `service-java-todo`: Java (Spring Boot) Service für ToDo-Management
@@ -48,18 +91,45 @@ Ziel ist es, eine Anwendung mit mehreren Microservices (Java, .NET, Python, Go, 
 
 ## Lokale Entwicklung
 
+```mermaid
+flowchart LR
+    A[Klonen des Repositories] --> B[docker-compose build]
+    B --> C[docker-compose up -d]
+    C --> D[Browser öffnen]
+    D --> E[http://localhost]
+    D --> F[http://localhost:3000]
+    
+    style E fill:#f9f,stroke:#333,stroke-width:2px
+    style F fill:#bbf,stroke:#333,stroke-width:2px
+```
+
 1. **Voraussetzungen:** Docker und Docker Compose müssen installiert sein.
 2. **Bauen der Images:** `docker-compose build`
 3. **Starten der Container:** `docker-compose up -d`
 
 ## Zugriff (lokale Entwicklung)
 
-- **Frontend:** [http://localhost:4200](http://localhost:4200)
+- **Frontend:** [http://localhost](http://localhost) (via Nginx Gateway)
 - **Grafana:** [http://localhost:3000](http://localhost:3000) (Login: admin/admin)
 - **Prometheus:** [http://localhost:9090](http://localhost:9090)
 - **Andere Service Ports:** Siehe `docker-compose.yml`
 
 ## Kubernetes/OpenShift Deployment
+
+```mermaid
+flowchart TB
+    A[Lokales Deployment] --> B[helm install sretodo .]
+    
+    C[GitHub Actions Deployment] --> D[Workflow ausführen]
+    D --> E[Bauen der Images]
+    E --> F[Push zu GHCR]
+    F --> G[Deployment auf OpenShift]
+    
+    H[Manual OpenShift] --> I[oc login]
+    I --> J[helm install]
+    
+    style G fill:#f9f,stroke:#333,stroke-width:2px
+```
 
 Die Anwendung kann auch in Kubernetes/OpenShift-Umgebungen bereitgestellt werden:
 
@@ -94,3 +164,10 @@ Detailliertere Projektinformationen finden sich im `memory-bank`-Verzeichnis.
 - Grafana Dashboards zeigen in OpenShift "No Data" an (wird untersucht).
 - Das Frontend in OpenShift zeigt manchmal eine statische HTML-Seite anstelle der Angular-Anwendung (wird durch ConfigMap-Montage verursacht).
 - Ressourcenlimits/-requests müssen für OpenShift-Umgebungen optimiert werden.
+
+## Aktuelle Fixes (10.04.2025)
+
+- **Nginx Gateway:** Konfiguration verbessert für korrekte API-Pfad-Weiterleitungen
+  - `/api/todos/` wird jetzt korrekt an den Java-Service weitergeleitet
+  - Probleme mit fehlenden Schrägstrichen am Ende der URLs behoben
+  - 404-Fehler im Frontend wurden behoben

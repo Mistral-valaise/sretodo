@@ -6,7 +6,75 @@ Dieses Frontend wurde mit Angular CLI erstellt und zeigt Daten aus den verschied
 Es ermöglicht Benutzern das Anzeigen, Erstellen und Verwalten von ToDos sowie die Steuerung eines Pomodoro-Timers.
 Der Zugriff erfolgt über das Nginx Gateway (`http://localhost/`).
 
+```mermaid
+graph TB
+    User(["Benutzer"]) --> NginxGateway["Nginx Gateway"]
+    
+    subgraph "Frontend Angular"
+        NginxGateway --> AppComponent["App Component"]
+        AppComponent --> TodoComponent["Todo Component"]
+        AppComponent --> StatisticsComponent["Statistics Component"] 
+        AppComponent --> PomodoroComponent["Pomodoro Component"]
+        
+        TodoComponent --> ApiService["API Service"]
+        StatisticsComponent --> ApiService
+        PomodoroComponent --> ApiService
+        
+        ApiService --> OTel["OpenTelemetry SDK"]
+    end
+    
+    ApiService --> BackendAPI["Backend APIs (via Nginx Gateway)"]
+    OTel --> Collector["OTel Collector"]
+```
+
+## Benutzeroberfläche
+
+```mermaid
+graph TB
+    subgraph "Hauptnavigation"
+        Nav["Navigation Tabs"]
+        Nav --> TodoView["Todo-Ansicht"]
+        Nav --> StatsView["Statistik-Ansicht"]
+        Nav --> PomoView["Pomodoro-Ansicht"]
+    end
+    
+    subgraph "Todo-Komponente"
+        TodoView --> TodoList["Todo-Liste"]
+        TodoView --> AddTodo["Neues Todo"]
+        TodoList --> TodoItem["Todo Items mit Checkbox"]
+        TodoItem --> ToggleStatus["Status umschalten"]
+        TodoItem --> Delete["Todo löschen"]
+        TodoItem --> Edit["Todo bearbeiten"]
+    end
+    
+    subgraph "Pomodoro-Komponente"
+        PomoView --> TimerDisplay["Timer-Anzeige"]
+        PomoView --> TimerControls["Timer-Steuerung"]
+        TimerControls --> StartBtn["Start-Button"]
+        TimerControls --> StopBtn["Stop-Button"]
+    end
+    
+    subgraph "Statistik-Komponente"
+        StatsView --> TotalCount["Gesamtanzahl der Todos"]
+    end
+    
+    style TodoView fill:#f9f,stroke:#333
+    style StatsView fill:#bbf,stroke:#333
+    style PomoView fill:#bfb,stroke:#333
+```
+
 ## API Endpunkte (Aufrufe durch das Frontend)
+
+```mermaid
+graph LR
+    Frontend[Frontend Angular] --> TodoAPI["Todo API\n/api/todos/"]
+    Frontend --> StatisticsAPI["Statistics API\n/api/statistics"]
+    Frontend --> PomodoroAPI["Pomodoro API\n/api/pomodoro/timers/"]
+    
+    TodoAPI --> TodoSvc["Java Todo Service"]
+    StatisticsAPI --> StatSvc["DotNet Statistik Service"]
+    PomodoroAPI --> PomoSvc["Python Pomodoro Service"]
+```
 
 Das Frontend kommuniziert mit den Backend-Services über das Nginx Gateway unter folgenden Pfaden:
 
@@ -31,6 +99,31 @@ Das Frontend kommuniziert mit den Backend-Services über das Nginx Gateway unter
 
 ## Entwicklungsschritte
 
+```mermaid
+timeline
+    title Frontend Entwicklung
+    section Phase 1
+        Basissystem : Initiales Setup mit Angular CLI
+        : Dockerfile erstellt
+        : HttpClientModule konfiguriert
+    section Phase 2
+        Basic UI : Basis-UI in AppComponent
+        : Header, Footer, Styling
+        : ngIf-basierte Navigation
+    section Phase 3
+        Features : Todo CRUD-Operationen
+        : Pomodoro-Funktionalität
+        : API-Gateway-Integration
+    section Phase 4
+        Architektur : Angular Routing implementiert
+        : Komponenten ausgelagert
+        : OpenTelemetry-Integration
+    section Phase 5
+        Optimierung : OpenShift-Kompatibilität
+        : Nginx-Konfiguration optimiert
+        : Gateway-Pfad-Fixes
+```
+
 1.  Initiales Projekt-Setup mit `ng new`.
 2.  Dockerfile erstellt (Multi-Stage mit Nginx).
 3.  `HttpClientModule` konfiguriert.
@@ -42,6 +135,7 @@ Das Frontend kommuniziert mit den Backend-Services über das Nginx Gateway unter
 9.  Angular Routing implementiert (die Logik für die einzelnen Ansichten wurde in dedizierte Komponenten ausgelagert).
 10. OpenTelemetry-Instrumentierung hinzugefügt, um Traces für Seitenaufrufe und HTTP-Anfragen zu generieren.
 11. OpenShift-Kompatibilität durch Anpassungen im Dockerfile und Nginx-Konfiguration sichergestellt.
+12. Nginx Gateway-Konfiguration für korrekte API-Pfadweiterleitung angepasst.
 
 ## Funktionalität
 
@@ -61,6 +155,18 @@ Das Frontend kommuniziert mit den Backend-Services über das Nginx Gateway unter
 -   Kommuniziert mit den Backend-Services über HTTP-Anfragen an das Nginx Gateway (`/api/...`) mittels eines zentralen `ApiService` (`api.service.ts`).
 -   **Modelle:** Verwendet Interfaces (`Todo`, `PomodoroState`, `Statistics`) definiert in `models.ts`.
 -   **OpenTelemetry:** Ist integriert, um Traces für Seitenaufrufe, Klicks und HTTP-Anfragen (Fetch/XHR) zu generieren. Die Konfiguration erfolgt in `src/app/tracing.ts` und wird in `src/main.ts` initialisiert.
+
+## Observability
+
+```mermaid
+flowchart LR
+    A["Angular Frontend"] --> B["OpenTelemetry SDK"]
+    B --> C["OTel Collector"]
+    C --> D["Tempo (Traces)"]
+    C --> E["Prometheus (Metriken)"]
+```
+
+Das Frontend verwendet das OpenTelemetry SDK für Web, um Traces für Benutzerinteraktionen und API-Aufrufe zu generieren.
 
 ## OpenShift-Kompatibilität
 
@@ -97,3 +203,8 @@ Das Frontend wird zusammen mit den anderen Services über Helm bereitgestellt (s
 
 - In OpenShift zeigt das Frontend manchmal eine statische HTML-Seite anstelle der Angular-Anwendung, wenn die ConfigMap-Montage nicht entfernt wurde.
 - Nach einem Neustart des Containers kann es kurzfristig zu CORS-Problemen kommen, bis das Nginx Gateway vollständig gestartet ist.
+
+## Aktuelle Fixes (10.04.2025)
+
+- Die Nginx-Gateway-Konfiguration wurde angepasst, um die 404-Fehler bei API-Anfragen zu beheben
+- API-Pfade mit und ohne Schrägstrich am Ende werden jetzt korrekt an die Backend-Services weitergeleitet
