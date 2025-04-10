@@ -8,7 +8,7 @@ global:
     # Name of the secret used to pull images from private registries like GHCR
     # Ensure this secret exists in the target namespace.
     # Create it using: kubectl create secret docker-registry <secretName> --docker-server=ghcr.io --docker-username=<user> --docker-password=<pat> -n <namespace>
-    pullSecret: ghcr-secret
+    pullSecret: "" # Leeres pullSecret, da wir ein öffentliches Repository verwenden
   repositoryPrefix: ghcr.io/mistral-valaise # Prefix for application images
 
 # Frontend Configuration
@@ -17,8 +17,8 @@ frontend:
   replicas: 1
   # Image name suffix, prefix is global
   imageName: sretodo-frontend
-  # Add specific tag for this service
-  tag: 68cf111 # <-- TODO: Change to a specific, existing tag if 'latest' doesn't exist or causes issues
+  # Tag kommt nun aus global
+  tag: latest
   # tag and pullPolicy come from global
   service:
     type: ClusterIP
@@ -37,8 +37,8 @@ javaTodo:
   replicas: 1
   # Image name suffix
   imageName: sretodo-java-todo
-  # Add specific tag for this service
-  tag: afa966b # <-- TODO: Change to a specific, existing tag if 'latest' doesn't exist or causes issues
+  # Tag kommt nun aus global
+  tag: latest
   # tag and pullPolicy come from global
   service:
     type: ClusterIP
@@ -57,8 +57,8 @@ dotnetStatistik:
   replicas: 1
   # Image name suffix
   imageName: sretodo-dotnet-statistik
-  # Add specific tag for this service
-  tag: 5f5c04a # <-- TODO: Change to a specific, existing tag if 'latest' doesn't exist or causes issues
+  # Tag kommt nun aus global
+  tag: latest
   # tag and pullPolicy come from global
   service:
     type: ClusterIP
@@ -77,8 +77,8 @@ pythonPomodoro:
   replicas: 1
   # Image name suffix
   imageName: sretodo-python-pomodoro
-  # Add specific tag for this service
-  tag: 5f5c04a # <-- TODO: Change to a specific, existing tag if 'latest' doesn't exist or causes issues
+  # Tag kommt nun aus global
+  tag: latest
   # tag and pullPolicy come from global
   service:
     type: ClusterIP
