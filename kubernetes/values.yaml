@@ -18,7 +18,7 @@ frontend:
   # Image name suffix, prefix is global
   imageName: sretodo-frontend
   # Add specific tag for this service
-  tag: a0a85f3 # <-- TODO: Change to a specific, existing tag if 'latest' doesn't exist or causes issues
+  tag: 68cf111 # <-- TODO: Change to a specific, existing tag if 'latest' doesn't exist or causes issues
   # tag and pullPolicy come from global
   service:
     type: ClusterIP
