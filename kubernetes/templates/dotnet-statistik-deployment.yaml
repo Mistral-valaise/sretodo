@@ -18,9 +18,11 @@ spec:
         {{- include "sretodo.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: dotnet-statistik
     spec:
-      # Reference the global image pull secret
+      # Reference the global image pull secret only if defined
+      {{- if .Values.global.image.pullSecret }}
       imagePullSecrets:
         - name: {{ .Values.global.image.pullSecret }}
+      {{- end }}
       # OpenShift compatible security context
       securityContext:
         fsGroup: 1006530000
@@ -41,6 +43,10 @@ spec:
             runAsNonRoot: true
             runAsUser: 1006530000
             runAsGroup: 1006530000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           ports:
             - name: http
               containerPort: 8080

@@ -18,20 +18,33 @@ spec:
         {{- include "sretodo.selectorLabels" . | nindent 8 }}
         app.kubernetes.io/component: python-pomodoro
     spec:
-      # Reference the global image pull secret
+      # Reference the global image pull secret only if defined
+      {{- if .Values.global.image.pullSecret }}
       imagePullSecrets:
         - name: {{ .Values.global.image.pullSecret }}
+      {{- end }}
       # OpenShift compatible security context
       securityContext:
         fsGroup: 1006530000
       containers:
         - name: python-pomodoro
-          # Construct image path using global prefix, service name, and service-specific tag
           image: "{{ .Values.global.repositoryPrefix }}/{{ .Values.pythonPomodoro.imageName }}:{{ .Values.pythonPomodoro.tag }}"
           imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          env:
+            - name: TODO_SERVICE_HOST
+              value: {{ .Release.Name }}-java-todo
+            - name: TODO_SERVICE_PORT
+              value: "{{ .Values.javaTodo.service.port | default 8080 }}"
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://{{ .Release.Name }}-otel-collector:4317
           securityContext:
             runAsNonRoot: true
             runAsUser: 1006530000
+            runAsGroup: 1006530000
+            allowPrivilegeEscalation: false
+            capabilities:
+              drop:
+                - ALL
           ports:
             - name: http
               containerPort: 8002
@@ -49,11 +62,6 @@ spec:
               port: http
             initialDelaySeconds: 15
             periodSeconds: 10
-          env:
-            - name: OTEL_EXPORTER_OTLP_ENDPOINT
-              value: http://{{ .Release.Name }}-otel-collector:4317
-            - name: TODO_SERVICE_URL
-              value: http://{{ .Release.Name }}-java-todo:8080
           resources:
             {{- toYaml .Values.pythonPomodoro.resources | nindent 12 }}
 ---

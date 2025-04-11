@@ -1,78 +1,79 @@
 # SRE Todo Kubernetes Helm Chart
 
-This Helm chart deploys the SRE Todo application with OpenTelemetry observability in a Kubernetes cluster.
+Dieses Helm Chart ermöglicht die Bereitstellung der SRE Todo-Anwendung mit OpenTelemetry-Observability in einem Kubernetes- oder OpenShift-Cluster.
 
-## Prerequisites
+## Voraussetzungen
 
-- Kubernetes 1.19+
+- Kubernetes 1.19+ oder OpenShift 4.x+
 - Helm 3.2.0+
 
-## Getting Started
+## Erste Schritte
 
 ### Installation
 
-1. **Clone the Repository**
+1. **Repository klonen**
    ```bash
-   git clone https://github.com/your-organization/sretodo.git # Replace with your repo URL
+   git clone https://github.com/your-organization/sretodo.git # Durch Ihre Repository-URL ersetzen
    cd sretodo/kubernetes
    ```
 
-2. **(If using private registry like GHCR) Create Image Pull Secret**
-   Ensure you have created a secret in your target namespace that allows pulling images from your private container registry (e.g., `ghcr.io`). The default secret name expected by the chart is `ghcr-secret` (configurable via `global.image.pullSecret` in `values.yaml`).
+2. **(Bei Verwendung einer privaten Registry wie GHCR) Image Pull Secret erstellen**
+   Stellen Sie sicher, dass Sie in Ihrem Ziel-Namespace ein Secret erstellt haben, das das Abrufen von Images aus Ihrer privaten Container-Registry (z.B. `ghcr.io`) ermöglicht. Der standardmäßig vom Chart erwartete Secret-Name ist `ghcr-secret` (konfigurierbar über `global.image.pullSecret` in `values.yaml`).
    ```bash
-   # Example for GHCR
+   # Beispiel für GHCR
    kubectl create secret docker-registry ghcr-secret \
-     --namespace=<your-namespace> \
+     --namespace=<ihr-namespace> \
      --docker-server=ghcr.io \
-     --docker-username=<your-github-username> \
-     --docker-password=<your-github-pat> \
-     --docker-email=<your-email>
+     --docker-username=<ihr-github-benutzername> \
+     --docker-password=<ihr-github-pat> \
+     --docker-email=<ihre-email>
    ```
-   You might also need to link this secret to the default service account if your pods use it:
+   Möglicherweise müssen Sie dieses Secret auch mit dem Standard-Serviceaccount verknüpfen, wenn Ihre Pods diesen verwenden:
    ```bash
-   kubectl patch serviceaccount default -p '{"imagePullSecrets": [{"name":"ghcr-secret"}]}' -n <your-namespace>
+   kubectl patch serviceaccount default -p '{"imagePullSecrets": [{"name":"ghcr-secret"}]}' -n <ihr-namespace>
    ```
 
-3. **Customize `values.yaml` (Important!)**
-   - Review `kubernetes/values.yaml`.
-   - **Crucially, update the `tag` field under each application service (`frontend`, `javaTodo`, `dotnetStatistik`, `pythonPomodoro`) to point to a valid, existing image tag in your registry.** Using `latest` might fail if the tag doesn't exist or due to caching.
-   - Adjust other values like replicas, resources, or enabled components as needed.
+3. **Anpassen von `values.yaml` (Wichtig!)**
+   - Überprüfen Sie `kubernetes/values.yaml`.
+   - **Es ist entscheidend, das `tag`-Feld für jeden Anwendungsservice (`frontend`, `javaTodo`, `dotnetStatistik`, `pythonPomodoro`) auf einen gültigen, in Ihrer Registry vorhandenen Image-Tag zu setzen.** Die Verwendung von `latest` könnte fehlschlagen, wenn der Tag nicht existiert oder aufgrund von Caching.
+   - Passen Sie andere Werte wie Replicas, Ressourcen oder aktivierte Komponenten nach Bedarf an.
 
-4. **Install the Helm chart**
-   Deploy the chart using Helm, specifying your target namespace:
+4. **Helm Chart installieren**
+   Stellen Sie das Chart mit Helm bereit und geben Sie Ihren Ziel-Namespace an:
    ```bash
-   helm upgrade --install sretodo-release . -n <your-namespace>
+   helm upgrade --install sretodo-release . -n <ihr-namespace>
    ```
-   *(Using `upgrade --install` is generally safer than just `install`)*
+   *(Die Verwendung von `upgrade --install` ist im Allgemeinen sicherer als nur `install`)*
 
-To provide overrides without editing `values.yaml`:
+Um Überschreibungen ohne Bearbeitung von `values.yaml` bereitzustellen:
 
 ```bash
-helm upgrade --install sretodo-release . -n <your-namespace> --set frontend.replicas=2 --set javaTodo.tag=specific-tag-123
+helm upgrade --install sretodo-release . -n <ihr-namespace> --set frontend.replicas=2 --set javaTodo.tag=specific-tag-123
 ```
 
-### Deployment on OpenShift
+### Bereitstellung auf OpenShift
 
-The Helm chart has been optimized for OpenShift deployment:
+Das Helm Chart wurde für die OpenShift-Bereitstellung optimiert:
 
-1. All containers are configured to run as non-root users
-2. Frontend and NGINX gateway use port 8080 instead of port 80
-3. SecurityContext is set to ensure proper permissions
+1. Alle Container sind so konfiguriert, dass sie als Nicht-Root-Benutzer ausgeführt werden
+2. Frontend und NGINX-Gateway verwenden Port 8080 statt Port 80
+3. SecurityContext ist eingestellt, um ordnungsgemäße Berechtigungen zu gewährleisten
+4. Die Container verwenden einen uid-Bereich, der für OpenShift geeignet ist (1006530000)
 
-To deploy on OpenShift:
+Um auf OpenShift bereitzustellen:
 
 ```bash
 helm install sretodo . -f values.yaml
 ```
 
-## Architecture
+## Architektur
 
-The SRE Todo application consists of the following components:
+Die SRE Todo-Anwendung besteht aus folgenden Komponenten:
 
-- **Frontend**: Angular-based web interface built from CI/CD pipeline
-- **Java Todo Service**: Backend service for managing todos
-- **PostgreSQL**: Database for storing todos
-- **NGINX Gateway**: API gateway for frontend and services
+- **Frontend**: Auf Angular basierende Weboberfläche, die aus der CI/CD-Pipeline erstellt wird
+- **Java Todo Service**: Backend-Service zur Verwaltung von Todos
+- **PostgreSQL**: Datenbank zum Speichern von Todos
+- **NGINX Gateway**: API-Gateway für Frontend und Services
 - **Observability Stack**:
   - OpenTelemetry Collector
   - Prometheus
@@ -80,17 +81,17 @@ The SRE Todo application consists of the following components:
   - Loki
   - Grafana
 
-## Configuration
+## Konfiguration
 
-### Global Settings (`global` block in `values.yaml`)
-- `global.image.tag`: Default image tag (though service-specific tags are now preferred).
-- `global.image.pullPolicy`: Default pull policy (e.g., `Always`, `IfNotPresent`).
-- `global.image.pullSecret`: Name of the Kubernetes secret used for pulling private images.
-- `global.repositoryPrefix`: The base URL of your container registry (e.g., `ghcr.io/my-org`).
+### Globale Einstellungen (`global`-Block in `values.yaml`)
+- `global.image.tag`: Standard-Image-Tag (obwohl jetzt servicespezifische Tags bevorzugt werden).
+- `global.image.pullPolicy`: Standard-Pull-Policy (z.B. `Always`, `IfNotPresent`).
+- `global.image.pullSecret`: Name des Kubernetes-Secrets zum Abrufen privater Images.
+- `global.repositoryPrefix`: Die Basis-URL Ihrer Container-Registry (z.B. `ghcr.io/my-org`).
 
-### Enabling/Disabling Components
+### Aktivieren/Deaktivieren von Komponenten
 
-Each component can be enabled or disabled through the `enabled` flag in the `values.yaml` file. For example:
+Jede Komponente kann über das `enabled`-Flag in der `values.yaml`-Datei aktiviert oder deaktiviert werden. Zum Beispiel:
 
 ```yaml
 frontend:
@@ -106,74 +107,80 @@ pythonPomodoro:
   enabled: false
 ```
 
-### Component Configuration
+### Komponentenkonfiguration
 
-Each component allows configuration of:
+Jede Komponente ermöglicht die Konfiguration von:
 
-- `imageName`: The specific name of the image (suffix after the global prefix).
-- `tag`: **(Important)** The specific image tag to deploy for this service. Must exist in the registry.
-- Number of replicas
-- Resource limits and requests
-- Service type
-- Environment variables (where applicable)
+- `imageName`: Der spezifische Name des Images (Suffix nach dem globalen Präfix).
+- `tag`: **(Wichtig)** Der spezifische Image-Tag, der für diesen Service bereitgestellt werden soll. Muss in der Registry existieren.
+- Anzahl der Replicas
+- Ressourcenlimits und -anforderungen
+- Service-Typ
+- Umgebungsvariablen (wo zutreffend)
 
-See the `values.yaml` file for all available configuration options.
+Siehe die `values.yaml`-Datei für alle verfügbaren Konfigurationsoptionen.
 
-## Security
+## Sicherheit
 
-All components are configured to run as non-root users with the minimum required permissions.
+Alle Komponenten sind so konfiguriert, dass sie als Nicht-Root-Benutzer mit den minimal erforderlichen Berechtigungen ausgeführt werden:
+
+- `securityContext.runAsUser`: 1006530000 (OpenShift-kompatibler Benutzer)
+- `securityContext.runAsGroup`: 0
+- `securityContext.fsGroup`: 1006530000 (für Volume-Berechtigungen)
 
 ## Observability
 
-The observability stack is enabled by default and includes:
+Der Observability-Stack ist standardmäßig aktiviert und umfasst:
 
-- **OpenTelemetry Collector**: Collects metrics, traces, and logs
-- **Prometheus**: Stores and queries metrics
-- **Tempo**: Stores and queries traces
-- **Loki**: Stores and queries logs
-- **Grafana**: Provides dashboards for visualizing all telemetry data
+- **OpenTelemetry Collector**: Sammelt Metriken, Traces und Logs
+- **Prometheus**: Speichert und fragt Metriken ab
+- **Tempo**: Speichert und fragt Traces ab
+- **Loki**: Speichert und fragt Logs ab
+- **Grafana**: Bietet Dashboards zur Visualisierung aller Telemetriedaten
 
-Access the Grafana dashboard at `http://<cluster-ip>:<port>/grafana` (get the service IP with `kubectl get svc`).
+Zugriff auf das Grafana-Dashboard unter `http://<cluster-ip>:<port>/grafana` (IP mit `kubectl get svc` abrufen).
 
-## Troubleshooting
+## Fehlerbehebung
 
-If you encounter issues with the deployment:
+Bei Problemen mit der Bereitstellung:
 
-1. Check the status of the Pods:
+1. Status der Pods überprüfen:
 ```bash
 kubectl get pods
 ```
 
-2. Check the logs of a specific Pod:
+2. Logs eines bestimmten Pods überprüfen:
 ```bash
 kubectl logs <pod-name>
 ```
 
-3. If a Pod is not starting, describe it for more details:
+3. Wenn ein Pod nicht startet, beschreiben Sie ihn für weitere Details:
 ```bash
 kubectl describe pod <pod-name>
 ```
 
 - **ImagePullBackOff / ErrImagePull / manifest unknown:**
-  - Verify the `tag` specified in `values.yaml` for the failing service exists in your registry (`ghcr.io/...`).
-  - Check if the `imagePullSecrets` (`ghcr-secret` by default) exists in the namespace.
-  - Ensure the secret contains valid credentials (correct username, PAT with `read:packages` scope) for `ghcr.io`.
-  - Confirm the secret is linked to the `default` service account (`kubectl get sa default -o yaml`).
+  - Überprüfen Sie, ob der in `values.yaml` angegebene `tag` für den fehlerhaften Service in Ihrer Registry (`ghcr.io/...`) existiert.
+  - Prüfen Sie, ob die `imagePullSecrets` (`ghcr-secret` standardmäßig) im Namespace existieren.
+  - Stellen Sie sicher, dass das Secret gültige Anmeldeinformationen (korrekter Benutzername, PAT mit `read:packages`-Scope) für `ghcr.io` enthält.
+  - Bestätigen Sie, dass das Secret mit dem `default`-Serviceaccount verknüpft ist (`kubectl get sa default -o yaml`).
 - **Gateway Timeout (504):**
-  - Check if the target Pod (e.g., frontend, java-todo) is running (`kubectl get pods`).
-  - Verify the target Service is correctly configured (ports match, selector matches pod labels) (`kubectl get svc <service-name> -o yaml`).
-  - Examine the Nginx Gateway logs (`kubectl logs <nginx-gateway-pod>`).
-  - Examine the target pod logs (`kubectl logs <target-pod>`).
+  - Überprüfen Sie, ob der Ziel-Pod (z.B. Frontend, Java-Todo) läuft (`kubectl get pods`).
+  - Überprüfen Sie, ob der Ziel-Service korrekt konfiguriert ist (Ports stimmen überein, Selektor entspricht Pod-Labels) (`kubectl get svc <service-name> -o yaml`).
+  - Untersuchen Sie die Logs des Nginx-Gateways (`kubectl logs <nginx-gateway-pod>`).
+  - Untersuchen Sie die Logs des Ziel-Pods (`kubectl logs <target-pod>`).
+- **Frontend zeigt statische HTML-Seite:**
+  - Überprüfen Sie, ob die ConfigMap in `frontend-deployment.yaml` entfernt wurde, die eine statische HTML-Seite anstelle der Angular-Anwendung bereitstellt.
 
 ## CI/CD mit GitHub Actions
 
 Die Bereitstellung auf einem Kubernetes/OpenShift-Cluster wird automatisch durch einen GitHub Actions Workflow (`.github/workflows/deploy.yaml`) gesteuert. Bei jedem Push auf die Branches `main` oder `dev`:
 
-1.  Werden die Docker-Images für alle Services gebaut.
-2.  Werden die Images in die GitHub Container Registry (ghcr.io) gepusht.
-3.  Wird das Helm-Chart mit `helm upgrade --install` auf dem Zielcluster (konfiguriert über Secrets `OPENSHIFT_SERVER`, `OPENSHIFT_TOKEN`, `OPENSHIFT_NAMESPACE`) angewendet, wobei die neu gebauten Image-Tags verwendet werden.
+1. Werden die Docker-Images für alle Services gebaut.
+2. Werden die Images in die GitHub Container Registry (ghcr.io) gepusht.
+3. Wird das Helm-Chart mit `helm upgrade --install` auf dem Zielcluster (konfiguriert über Secrets `OPENSHIFT_SERVER`, `OPENSHIFT_TOKEN`, `OPENSHIFT_NAMESPACE`) angewendet, wobei die neu gebauten Image-Tags verwendet werden.
 
-Eine manuelle Bereitstellung ist weiterhin möglich (siehe Abschnitt "Bereitstellung"), aber der automatisierte Workflow ist der bevorzugte Weg für Updates.
+Der Workflow unterstützt auch einen "deploy-only" Modus, der Konfigurationsänderungen ohne den Neubau von Images ermöglicht.
 
 ### Entfernen der Bereitstellung
 
@@ -204,4 +211,5 @@ kubectl delete namespace sretodo-demo # (Optional)
 
 - Grafana Dashboards anpassen/erstellen, da sie derzeit "No Data" anzeigen.
 - Ressourcenlimits/-requests basierend auf dem tatsächlichen Verbrauch in OpenShift optimieren.
-- Health Checks (Liveness/Readiness Probes) für alle Komponenten überprüfen und ggf. verbessern. 
+- Health Checks (Liveness/Readiness Probes) für alle Komponenten überprüfen und ggf. verbessern.
+- Frontend-ConfigMap entfernen, um die korrekte Angular-Anwendung anstelle der statischen HTML-Seite anzuzeigen.

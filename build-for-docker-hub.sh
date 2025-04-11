@@ -1,3 +1,57 @@
+#!/bin/bash
+
+# Skript zum Bauen und Taggen aller Docker-Images für Docker Hub oder eine andere öffentliche Registry
+
+# Konfiguration
+REGISTRY="docker.io/mistralvalaise"  # Ändere auf deinen Docker Hub Benutzernamen
+TAG="latest"
+
+# Farben für bessere Lesbarkeit
+GREEN='\033[0;32m'
+BLUE='\033[0;34m'
+NC='\033[0m' # No Color
+
+echo -e "${BLUE}=== SRETodo: Bauen und Taggen aller Docker-Images für öffentliche Registry ===${NC}"
+
+# Login-Aufforderung anzeigen
+echo -e "${GREEN}Bitte stelle sicher, dass du bei Docker Hub angemeldet bist:${NC}"
+echo -e "${GREEN}docker login${NC}"
+echo -e "${GREEN}Drücke Enter, um fortzufahren oder Ctrl+C zum Abbrechen...${NC}"
+read -p ""
+
+# 1. Frontend Service
+echo -e "${GREEN}Baue Frontend Service...${NC}"
+cd /Users/mistralnembot/ai-projects/sretodo/sretodo/frontend-angular
+docker build -t ${REGISTRY}/sretodo-frontend:${TAG} .
+docker push ${REGISTRY}/sretodo-frontend:${TAG}
+echo -e "${GREEN}Frontend Service wurde erfolgreich gebaut und gepusht.${NC}\n"
+
+# 2. Java Todo Service
+echo -e "${GREEN}Baue Java Todo Service...${NC}"
+cd /Users/mistralnembot/ai-projects/sretodo/sretodo/service-java-todo
+docker build -t ${REGISTRY}/sretodo-java-todo:${TAG} .
+docker push ${REGISTRY}/sretodo-java-todo:${TAG}
+echo -e "${GREEN}Java Todo Service wurde erfolgreich gebaut und gepusht.${NC}\n"
+
+# 3. .NET Statistik Service
+echo -e "${GREEN}Baue .NET Statistik Service...${NC}"
+cd /Users/mistralnembot/ai-projects/sretodo/sretodo/service-dotnet-statistik
+docker build -t ${REGISTRY}/sretodo-dotnet-statistik:${TAG} .
+docker push ${REGISTRY}/sretodo-dotnet-statistik:${TAG}
+echo -e "${GREEN}.NET Statistik Service wurde erfolgreich gebaut und gepusht.${NC}\n"
+
+# 4. Python Pomodoro Service
+echo -e "${GREEN}Baue Python Pomodoro Service...${NC}"
+cd /Users/mistralnembot/ai-projects/sretodo/sretodo/service-python-pomodoro
+docker build -t ${REGISTRY}/sretodo-python-pomodoro:${TAG} .
+docker push ${REGISTRY}/sretodo-python-pomodoro:${TAG}
+echo -e "${GREEN}Python Pomodoro Service wurde erfolgreich gebaut und gepusht.${NC}\n"
+
+echo -e "${BLUE}=== Alle Images wurden erfolgreich gebaut und in die Registry gepusht ===${NC}"
+
+# Aktualisiere die Helm values.yaml-Datei
+echo -e "${GREEN}Aktualisiere Helm values.yaml, um die öffentliche Registry zu verwenden...${NC}"
+cat > /Users/mistralnembot/ai-projects/sretodo/sretodo/kubernetes/values.yaml << EOF
 # Default values for SRE Todo Helm chart
 
 # Global settings
@@ -5,7 +59,7 @@ global:
   image:
     tag: latest # Default tag for application images
     pullPolicy: Always
-  repositoryPrefix: docker.io/mistralvalaise
+  repositoryPrefix: ${REGISTRY}
 
 # Frontend Configuration
 frontend:
@@ -163,3 +217,8 @@ nginxGateway:
     requests:
       cpu: 50m
       memory: 64Mi
+EOF
+
+echo -e "${BLUE}Die Helm-Werte wurden aktualisiert, um die öffentliche Registry zu verwenden.${NC}"
+echo -e "${BLUE}Du kannst jetzt Helm erneut ausführen, um die Anwendung in OpenShift zu deployen:${NC}"
+echo -e "${GREEN}helm upgrade --install sretodo-release ./kubernetes${NC}"
