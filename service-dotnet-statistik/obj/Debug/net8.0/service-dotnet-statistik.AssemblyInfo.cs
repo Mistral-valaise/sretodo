@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("service-dotnet-statistik")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+f57ef7c2f8f374427733a4392441f2b2de1bc9ed")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+454994592f20e9cb3c4006b07d5225982b71e3a1")]
 [assembly: System.Reflection.AssemblyProductAttribute("service-dotnet-statistik")]
 [assembly: System.Reflection.AssemblyTitleAttribute("service-dotnet-statistik")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]
